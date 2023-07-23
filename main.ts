@@ -1,31 +1,35 @@
 import * as d3 from "d3";
+import { Rectangle2D, Point2D } from "./geometry";
 
 const width = 800;
 const height = 800;
 
-async function demo() {
-  var svg = d3.select("body")
+async function createWorld(shape: Rectangle2D): Promise<d3.Selection<SVGSVGElement, unknown, HTMLElement, any>> {
+  return d3.select("body")
     .append("svg")
-    .attr("width", width)
-    .attr("height", height);
+    .attr("width", shape.width)
+    .attr("height", shape.height);
+}
 
-  var data = [{ x1: 20, x2: 60, y1: 30, y2: 50 },
-  { x1: 50, x2: 80, y1: 100, y2: 200 },
-  { x1: 200, x2: 400, y1: 10, y2: 100 }];
-
-  svg.selectAll("foo")
-    .data(data)
+async function drawPoints(world: d3.Selection<SVGSVGElement, unknown, HTMLElement, any>, points: Point2D[]) {
+  world.selectAll()
+    .data(points)
     .enter()
-    .append("rect")
-    .attr("x", d => d.x1)
-    .attr("y", d => d.y1)
-    .attr("width", d => d.x2 - d.x1)
-    .attr("height", d => d.y2 - d.y1)
-    .attr("fill", "teal");
+    .append("circle")
+    .attr("cx", d => d.x)
+    .attr("cy", d => d.y)
+    .attr("r", 5)
+    .attr("fill", "red");
 }
 
 async function main() {
-  await demo();
+  const world = await createWorld(new Rectangle2D(0, 0, 800, 800));
+  const screenSpace = new Rectangle2D(0, 0, width - 1, height - 1);
+  const points: Point2D[] = new Array(width / 20).fill(0).map((_, i) => ({ x: i * 20, y: height - i * 20 }));
+  await drawPoints(world, points);
+  // Rectangle2D screen_space{0, static_cast<double>(height - 1), static_cast<double>(width - 1), 0};
+  // backend_sdl2(int width, int height, const Rectangle2D &world, const Rectangle2D &screen_space, int point_radius)
+  // backend_sdl2(width, height, world, screen_space, points, 5);
 }
 
 main();

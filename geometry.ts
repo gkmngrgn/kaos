@@ -1,17 +1,23 @@
-interface Point2D {
+export interface Point2D {
   x: number;
   y: number;
 }
 
-interface Rectangle2D {
-  left: number;
-  bottom: number;
-  right: number;
-  top: number;
-}
+export class Rectangle2D {
+  constructor(
+    public left: number,
+    public bottom: number,
+    public right: number,
+    public top: number
+  ) { }
 
-function createRectangle2D(left: number, bottom: number, right: number, top: number): Rectangle2D {
-  return { left, bottom, right, top };
+  get width(): number {
+    return this.right - this.left;
+  }
+
+  get height(): number {
+    return this.top - this.bottom;
+  }
 }
 
 class WorldToScreenSpace {
