@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "build": "esbuild main.ts --bundle --minify --sourcemap --outfile=kaos.js"
+  },
+  "dependencies": {
+    "d3": "^7.8.5",
+    "esbuild": "0.18.16"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.0"
+  }
+}
