@@ -32,9 +32,8 @@ async function drawPoints(world: d3.Selection<SVGSVGElement, unknown, HTMLElemen
 async function main() {
   const world = await createWorld(new Rectangle2D(0, 0, 500, 500));
   let points = new Array(ChaosGame.maxIterations).fill(0).map(() => ({ x: 0, y: 0 }));
-  let selection = 0;
 
-  await generatePoints(points, selection);
+  await generatePoints(points, 2);
   await drawPoints(world, points);
 }
 

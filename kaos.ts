@@ -48,17 +48,18 @@ export async function generatePoints(points: Point2D[], selection = 0): Promise<
         selection = 0;
     }
 
-    // default selection = 0 settings
-    let nrEdges = 3;
-    let ratio = 0.5;
-    let distance = 0;
-    let func = (randomVertex: number, lastVertex: number, dist: number) => true;
+    let nrEdges, ratio, distance, func;
 
     if (selection === 1) {
-        func = (randomVertex: number, lastVertex: number, dist: number) => Math.abs(randomVertex - lastVertex) !== dist;
         nrEdges = 4;
         ratio = 0.5;
         distance = 0;
+        func = (randomVertex: number, lastVertex: number, dist: number) => Math.abs(randomVertex - lastVertex) !== dist;
+    } else {
+        nrEdges = 3;
+        ratio = 0.5;
+        distance = 0;
+        func = () => true;
     }
 
     const polygon = new RegularPolygon(nrEdges);
