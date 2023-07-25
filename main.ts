@@ -10,20 +10,29 @@ async function createWorld(shape: Rectangle2D): Promise<d3.Selection<SVGSVGEleme
 }
 
 async function drawPoints(world: d3.Selection<SVGSVGElement, unknown, HTMLElement, any>, points: Point2D[]) {
+  const worldCenter: Point2D = {
+    x: parseInt(world.attr("width")) / 2,
+    y: parseInt(world.attr("height")) / 2
+  };
   world.selectAll()
     .data(points)
     .enter()
     .append("circle")
-    .attr("cx", d => d.x)
-    .attr("cy", d => d.y)
-    .attr("r", 5)
-    .attr("fill", "red");
+    .attr("cx", d => worldCenter.x - Math.round(d.x * worldCenter.x))
+    .attr("cy", d => worldCenter.y - Math.round(d.y * worldCenter.y))
+    .attr("r", 0.5)
+    .attr("fill", "red")
+    .attr('opacity', 0)
+    .transition()
+    .duration(0.5)
+    .delay((d, i) => i * 0.5)
+    .attr('opacity', 1);;
 }
 
 async function main() {
-  const world = await createWorld(new Rectangle2D(0, 0, 800, 800));
+  const world = await createWorld(new Rectangle2D(0, 0, 500, 500));
   let points = new Array(ChaosGame.maxIterations).fill(0).map(() => ({ x: 0, y: 0 }));
-  let selection = 3;
+  let selection = 0;
 
   await generatePoints(points, selection);
   await drawPoints(world, points);
