@@ -24,8 +24,8 @@ async function drawPoints(world: d3.Selection<SVGSVGElement, unknown, HTMLElemen
     .attr("fill", "red")
     .attr('opacity', 0)
     .transition()
-    .duration(0.5)
-    .delay((d, i) => i * 0.5)
+    .duration(0.25)
+    .delay((d, i) => i * 0.25)
     .attr('opacity', 1);;
 }
 
