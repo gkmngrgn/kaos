@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "chaos-py"
+version = "0.1.0"
+description = ""
+authors = ["Gökmen Görgen <gkmngrgn@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pygame = "^2.6.0"
+
+[tool.poetry.scripts]
+chaos = "chaos_py:run"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
