@@ -10,7 +10,7 @@ python = "^3.12"
 pygame = "^2.6.0"
 
 [tool.poetry.scripts]
-chaos = "chaos_py:run"
+chaos = "kaos_py:run"
 
 [build-system]
 requires = ["poetry-core"]
