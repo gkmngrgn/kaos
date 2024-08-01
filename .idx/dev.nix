@@ -9,6 +9,7 @@
     pkgs.go
     pkgs.python312
     pkgs.poetry
+    pkgs.ffmpeg
   ];
 
   # Sets environment variables in the workspace
