@@ -1,15 +1,24 @@
-import dataclasses
+from dataclasses import dataclass, field
 
 
-@dataclasses.dataclass
+@dataclass
 class Point2D:
     x: float
     y: float
 
 
-@dataclasses.dataclass
+@dataclass
 class Rectangle2D:
-    x: float
-    y: float
-    width: float
-    height: float
+    left: float
+    bottom: float
+    right: float
+    top: float
+
+
+@dataclass
+class RegularPython:
+    nr_edges: int = field(default=3)
+    radius: float = field(default=1.0)
+    start_angle: float = field(default=90.0)
+    angle: float = field(default=120.0)
+    points: list[Point2D] = field(default_factory=list)

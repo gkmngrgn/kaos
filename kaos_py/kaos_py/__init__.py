@@ -10,7 +10,6 @@ HEIGHT: Final = 800
 async def main() -> None:
     world = Rectangle2D(-1.08, -1.08, 1.08, 1.08)
     selection = 0
-    
 
     points = generate_points()
 
