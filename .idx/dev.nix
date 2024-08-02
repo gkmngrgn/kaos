@@ -6,11 +6,12 @@
 
   # Use https://search.nixos.org/packages to find packages
   packages = [
+    pkgs.pre-commit
+    # Go
     pkgs.go
+    # Python
     pkgs.python312
     pkgs.poetry
-    pkgs.conan
-    pkgs.clang
   ];
 
   # Sets environment variables in the workspace

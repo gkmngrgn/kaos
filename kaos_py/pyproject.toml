@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "chaos-py"
+name = "kaos-py"
 version = "0.1.0"
 description = ""
 authors = ["Gökmen Görgen <gkmngrgn@gmail.com>"]
@@ -7,10 +7,9 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-pygame = "^2.6.0"
 
 [tool.poetry.scripts]
-chaos = "kaos_py:run"
+kaos = "kaos_py:run"
 
 [build-system]
 requires = ["poetry-core"]
