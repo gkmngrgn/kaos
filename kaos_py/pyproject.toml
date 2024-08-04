@@ -7,9 +7,11 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+numpy = "^2.0.1"
+pillow = "^10.4.0"
 
 [tool.poetry.scripts]
-kaos = "kaos_py:run"
+kaos = "kaos_py:main"
 
 [build-system]
 requires = ["poetry-core"]
