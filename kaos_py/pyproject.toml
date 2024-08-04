@@ -11,7 +11,7 @@ numpy = "^2.0.1"
 pillow = "^10.4.0"
 
 [tool.poetry.scripts]
-kaos = "kaos_py:main"
+kaos = "kaos_py:cli"
 
 [build-system]
 requires = ["poetry-core"]
