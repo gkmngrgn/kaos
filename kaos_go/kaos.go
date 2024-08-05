@@ -6,6 +6,19 @@ import (
 	"strconv"
 )
 
+const (
+	WIDTH  = 800
+	HEIGHT = 800
+)
+
+type Point2D struct {
+	x, y float64
+}
+
+type Rectangle2D struct {
+	left, bottom, right, top float64
+}
+
 func main() {
 	var selection int
 
