@@ -189,8 +189,8 @@ def is_valid_point_1(random_vertex: int, last_vertex: int, dist: int) -> bool:
     return True
 
 
-def generate_points(length: int, selection: int = 0) -> npt.NDArray[np.float64]:
-    points = np.empty((length, 2), dtype=np.float64)
+def generate_points(max_iterations: int, selection: int = 0) -> npt.NDArray[np.float64]:
+    points = np.empty((max_iterations, 2), dtype=np.float64)
 
     if selection == 1:
         func = is_valid_point
@@ -291,7 +291,7 @@ def generate_points(length: int, selection: int = 0) -> npt.NDArray[np.float64]:
     return points
 
 
-def cli() -> None:
+def main() -> None:
     world = Rectangle2D(-1.08, -1.08, 1.08, 1.08)
 
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
