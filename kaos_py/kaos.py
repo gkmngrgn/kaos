@@ -41,10 +41,9 @@ class RegularPolygon:
         if self.nr_edges % 2 == 0:
             self.start_angle += self.angle / 2.0
 
-        self.points = self.init_points()
+        self.init_points()
 
-    def init_points(self) -> list[Point2D]:
-        points = []
+    def init_points(self) -> None:
         deg_rad = math.pi / 180
         current_angle = self.start_angle * deg_rad
         min_y = 2.0
@@ -54,14 +53,12 @@ class RegularPolygon:
                 x=self.radius * math.cos(current_angle),
                 y=self.radius * math.sin(current_angle),
             )
-            points.append(point)
+            self.points.append(point)
 
             if min_y > point.y:
                 min_y = point.y
 
             current_angle += self.angle * deg_rad
-
-        return points
 
 
 @dataclass(init=False)
@@ -170,11 +167,11 @@ class KaosGame:
         return point
 
 
-def is_valid_point(random_vertex: int, last_vertex: int, dist: int) -> bool:
+def is_point_valid(random_vertex: int, last_vertex: int, dist: int) -> bool:
     return abs(random_vertex - last_vertex) != dist
 
 
-def is_valid_point_1(random_vertex: int, last_vertex: int, dist: int) -> bool:
+def is_point_valid_1(random_vertex: int, last_vertex: int, dist: int) -> bool:
     return True
 
 
@@ -182,91 +179,91 @@ def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
     points = []
 
     if selection == 1:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 4
         ratio = 0.5
         distance = 0
 
     elif selection == 2:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 4
         ratio = 0.5
         distance = 2
 
     elif selection == 3:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 5
         ratio = 0.5
         distance = 0
 
     elif selection == 4:
-        func = is_valid_point_1
+        func = is_point_valid_1
         nr_edges = 7
         ratio = 0.4
         distance = 0
 
     elif selection == 5:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 7
         ratio = 0.4
         distance = 3
 
     elif selection == 6:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 6
         ratio = 0.4
         distance = 3
 
     elif selection == 7:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 6
         ratio = 0.375
         distance = 0
 
     elif selection == 8:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 6
         ratio = 0.5
         distance = 2
 
     elif selection == 9:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 8
         ratio = 0.4
         distance = 0
 
     elif selection == 10:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 1
 
     elif selection == 11:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 2
 
     elif selection == 12:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 3
 
     elif selection == 13:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 4
 
     elif selection == 14:
-        func = is_valid_point
+        func = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 5
 
     else:
-        func = is_valid_point_1
+        func = is_point_valid_1
         nr_edges = 3
         ratio = 0.5
         distance = 0
