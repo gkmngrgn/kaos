@@ -1,10 +1,9 @@
 from dataclasses import dataclass, field
+import math
 import random
 import sys
-from typing import Callable, Final, Self
+from typing import Callable, Final
 
-import numpy as np
-import numpy.typing as npt
 from PIL import Image
 
 
@@ -14,18 +13,8 @@ HEIGHT: Final = 800
 
 @dataclass
 class Point2D:
-    x: np.float64
-    y: np.float64
-
-    @classmethod
-    def from_array(cls, array: npt.NDArray[np.float64]) -> Self:
-        return cls(x=array[0], y=array[1])
-
-    def to_array(self) -> npt.NDArray[np.float64]:
-        return np.array([self.x, self.y])
-
-    def to_int_list(self) -> list[int]:
-        return [self.x.astype(int), self.y.astype(int)]
+    x: float
+    y: float
 
 
 @dataclass
@@ -42,36 +31,37 @@ class RegularPolygon:
     radius: float = field(default=1.0)
     start_angle: float = field(default=90.0)
     angle: float = field(init=False)
-    points: npt.NDArray[np.float64] = field(init=False)
+    points: list[Point2D] = field(init=False)
 
     def __post_init__(self) -> None:
         self.angle = 360.0 / self.nr_edges
-        self.points = np.empty((self.nr_edges, 2), dtype=np.float64)
 
         # We change the start_angle in order to have the lower edge of every polygon parallel with
         # the horizontal axis.
         if self.nr_edges % 2 == 0:
             self.start_angle += self.angle / 2.0
 
-        self.init_points()
+        self.points = self.init_points()
 
-    def init_points(self) -> None:
-        deg_rad = np.pi / 180.0
+    def init_points(self) -> list[Point2D]:
+        points = []
+        deg_rad = math.pi / 180
         current_angle = self.start_angle * deg_rad
         min_y = 2.0
 
-        for index in range(self.nr_edges):
+        for _ in range(self.nr_edges):
             point = Point2D(
-                x=self.radius * np.cos(current_angle),
-                y=self.radius * np.sin(current_angle),
+                x=self.radius * math.cos(current_angle),
+                y=self.radius * math.sin(current_angle),
             )
-
-            self.points[index] = [point.x, point.y]
+            points.append(point)
 
             if min_y > point.y:
                 min_y = point.y
 
             current_angle += self.angle * deg_rad
+
+        return points
 
 
 @dataclass(init=False)
@@ -97,11 +87,11 @@ class WorldToScreenSpace:
 def points_to_screen_space(
     world: Rectangle2D,
     screen_space: Rectangle2D,
-    points: npt.NDArray[np.float64],
-) -> npt.NDArray[np.float64]:
+    points: list[Point2D],
+) -> list[Point2D]:
     "Transform, map, convert the points elements to the screen space."
     wssp = WorldToScreenSpace(world=world, screen_space=screen_space)
-    return np.array([wssp.mapping(Point2D.from_array(p)).to_array() for p in points])
+    return [wssp.mapping(p) for p in points]
 
 
 def draw_point_with_size(
@@ -127,7 +117,7 @@ def backend_bmp(
     height: int,
     world: Rectangle2D,
     screen_space: Rectangle2D,
-    points: npt.NDArray[np.float64],
+    points: list[Point2D],
     point_radius: int,
 ) -> None:
     image = Image.new("RGB", (width, height), color="white")
@@ -135,8 +125,7 @@ def backend_bmp(
 
     if point_radius == 0:
         for point in points:
-            pixel_position = Point2D.from_array(point).to_int_list()
-            image.putpixel(xy=pixel_position, value=(255, 0, 0))
+            image.putpixel(xy=(int(point.x), int(point.y)), value=(255, 0, 0))
     else:
         for point in points:
             draw_point_with_size(image, width, height, point, point_radius)
@@ -150,7 +139,7 @@ class KaosGame:
 
     def __init__(self, polygon: RegularPolygon) -> None:
         self.polygon = polygon
-        self.last_point = Point2D.from_array(polygon.points[0])
+        self.last_point = polygon.points[0]
         self.last_vertex = 0
 
     def get_next_point(
@@ -163,10 +152,10 @@ class KaosGame:
         remove_iter = 0
 
         while running is True:
-            random_vertex = random.randint(0, self.polygon.points.shape[0] - 1)
+            random_vertex = random.randint(0, len(self.polygon.points) - 1)
 
             if func(random_vertex, self.last_vertex, dist) is True:
-                random_point = Point2D.from_array(self.polygon.points[random_vertex])
+                random_point = self.polygon.points[random_vertex]
                 point = Point2D(
                     x=((self.last_point.x + random_point.x) * ratio),
                     y=((self.last_point.y + random_point.y) * ratio),
@@ -189,8 +178,8 @@ def is_valid_point_1(random_vertex: int, last_vertex: int, dist: int) -> bool:
     return True
 
 
-def generate_points(max_iterations: int, selection: int = 0) -> npt.NDArray[np.float64]:
-    points = np.empty((max_iterations, 2), dtype=np.float64)
+def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
+    points = []
 
     if selection == 1:
         func = is_valid_point
@@ -285,8 +274,8 @@ def generate_points(max_iterations: int, selection: int = 0) -> npt.NDArray[np.f
     polygon = RegularPolygon(nr_edges=nr_edges)
     kaos = KaosGame(polygon)
 
-    for index in range(points.shape[0]):
-        points[index] = kaos.get_next_point(func, ratio, distance).to_array()
+    for _ in range(max_iterations):
+        points.append(kaos.get_next_point(func, ratio, distance))
 
     return points
 
