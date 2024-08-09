@@ -2,11 +2,15 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
 	"math"
 	"math/rand"
 	"os"
 	"strconv"
-	"time"
+
+	"golang.org/x/image/bmp"
 )
 
 const (
@@ -55,13 +59,14 @@ func (rp *RegularPolygon) initPoints() {
 	minY := 2.0
 
 	for index := 0; index < rp.NrEdges; index++ {
-		rp.Points[index] = Point2D{
+		point := Point2D{
 			X: rp.Radius * math.Cos(currentAngle),
 			Y: rp.Radius * math.Sin(currentAngle),
 		}
+		rp.Points = append(rp.Points, point)
 
-		if minY > rp.Points[index].Y {
-			minY = rp.Points[index].Y
+		if minY > point.Y {
+			minY = point.Y
 		}
 
 		currentAngle += rp.Angle * degRad
@@ -94,8 +99,6 @@ func (kg *KaosGame) GetNextPoint(
 	running := true
 	removeIter := 0
 
-	rand.Seed(time.Now().UnixNano())
-
 	for running {
 		randomVertex := rand.Intn(len(kg.Polygon.Points))
 
@@ -116,6 +119,24 @@ func (kg *KaosGame) GetNextPoint(
 	}
 
 	return kg.LastPoint
+}
+
+type WorldToScreenSpace struct {
+	A, B, C, D float64
+}
+
+func NewWorldToScreenSpace(world, screenSpace Rectangle2D) *WorldToScreenSpace {
+	a := (screenSpace.Right - screenSpace.Left) / (world.Right - world.Left)
+	b := (screenSpace.Top - screenSpace.Bottom) / (world.Top - world.Bottom)
+	c := screenSpace.Left - a*world.Left
+	d := screenSpace.Bottom - c*world.Bottom
+	return &WorldToScreenSpace{A: a, B: b, C: c, D: d}
+}
+
+func (w2ss *WorldToScreenSpace) Mapping(point Point2D) Point2D {
+	x := w2ss.A*point.X + w2ss.C
+	y := w2ss.B*point.Y + w2ss.D
+	return Point2D{X: x, Y: y}
 }
 
 func isPointValid(randomVertex, lastVertex, dist int) bool {
@@ -222,6 +243,63 @@ func generate_points(maxIterations int, selection int) []Point2D {
 	return points
 }
 
+func pointsToScreenSpace(world, screenSpace Rectangle2D, points []Point2D) []Point2D {
+	w2ss := NewWorldToScreenSpace(world, screenSpace)
+	var screenPoints []Point2D
+	for _, p := range points {
+		screenPoints = append(screenPoints, w2ss.Mapping(p))
+	}
+	return screenPoints
+}
+
+func backendBmp(
+	fileName string,
+	width, height int,
+	world, screenSpace Rectangle2D,
+	points []Point2D,
+	pointRadius int,
+) {
+	points = pointsToScreenSpace(world, screenSpace, points)
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	bgColor := color.RGBA{255, 255, 255, 255}
+	draw.Draw(img, img.Bounds(), &image.Uniform{bgColor}, image.Point{}, draw.Src)
+	pointColor := color.RGBA{255, 0, 0, 255}
+	radius2 := pointRadius * pointRadius
+
+	if pointRadius == 0 {
+		for _, point := range points {
+			img.Set(int(point.X), int(point.Y), pointColor)
+		}
+	} else {
+		for _, point := range points {
+			xmin := int(math.Max(point.X-float64(pointRadius), 0))
+			xmax := int(math.Min(point.X+float64(pointRadius), float64(width-1)))
+			ymin := int(math.Max(point.Y-float64(pointRadius), 0))
+			ymax := int(math.Min(point.Y+float64(pointRadius), float64(height-1)))
+
+			for j := ymin; j <= ymax; j++ {
+				for i := xmin; i <= xmax; i++ {
+					dist := (i-int(point.X))*(i-int(point.X)) + (j-int(point.Y))*(j-int(point.Y))
+					if dist <= radius2 {
+						img.Set(i, j, pointColor)
+					}
+				}
+			}
+		}
+	}
+
+	outFile, err := os.Create(fileName)
+	if err != nil {
+		panic(err)
+	}
+	defer outFile.Close()
+
+	err = bmp.Encode(outFile, img)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	var selection int
 
@@ -237,8 +315,10 @@ func main() {
 	}
 
 	fmt.Printf("Selection is: %d\n", selection)
-	// points := generate_points(MAX_ITERATIONS, selection)
-	// screenSpace := Rectangle2D{Left: 0, Bottom: 0, Right: WIDTH - 1, Top: HEIGHT - 1}
+	world := Rectangle2D{Left: -1.08, Bottom: -1.08, Right: 1.08, Top: 1.08}
+	points := generate_points(MAX_ITERATIONS, selection)
+	screenSpace := Rectangle2D{Left: 0, Bottom: 0, Right: WIDTH - 1, Top: HEIGHT - 1}
 	fileName := fmt.Sprintf("kaos_%d.bmp", selection)
+	backendBmp(fileName, WIDTH, HEIGHT, world, screenSpace, points, 0)
 	fmt.Printf("Saved to: %s\n", fileName)
 }

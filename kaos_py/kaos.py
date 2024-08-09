@@ -81,16 +81,6 @@ class WorldToScreenSpace:
         )
 
 
-def points_to_screen_space(
-    world: Rectangle2D,
-    screen_space: Rectangle2D,
-    points: list[Point2D],
-) -> list[Point2D]:
-    "Transform, map, convert the points elements to the screen space."
-    wssp = WorldToScreenSpace(world=world, screen_space=screen_space)
-    return [wssp.mapping(p) for p in points]
-
-
 class KaosGame:
     max_iterations = 100_000
     ignore_first_iterations = 10
@@ -238,6 +228,16 @@ def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
     return points
 
 
+def points_to_screen_space(
+    world: Rectangle2D,
+    screen_space: Rectangle2D,
+    points: list[Point2D],
+) -> list[Point2D]:
+    "Transform, map, convert the points elements to the screen space."
+    wssp = WorldToScreenSpace(world=world, screen_space=screen_space)
+    return [wssp.mapping(p) for p in points]
+
+
 def backend_bmp(
     file_name: str,
     width: int,
@@ -250,10 +250,11 @@ def backend_bmp(
     image = Image.new("RGB", (width, height), color="white")
     points = points_to_screen_space(world, screen_space, points)
     radius2 = point_radius**2
+    point_color = (255, 0, 0)
 
     if point_radius == 0:
         for point in points:
-            image.putpixel(xy=(int(point.x), int(point.y)), value=(255, 0, 0))
+            image.putpixel(xy=(int(point.x), int(point.y)), value=point_color)
     else:
         for point in points:
             xmin = max(int(point.x - point_radius), 0)
@@ -265,7 +266,7 @@ def backend_bmp(
                 for i in range(xmin, xmax + 1):
                     dist = int((i - point.x) ** 2 + (j - point.y) ** 2)
                     if dist <= radius2:
-                        image.putpixel(xy=(i, j), value=(255, 0, 0))
+                        image.putpixel(xy=(i, j), value=point_color)
 
     image.save(file_name)
 
