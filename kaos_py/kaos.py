@@ -27,9 +27,9 @@ class Rectangle2D:
 
 @dataclass
 class RegularPolygon:
-    nr_edges: int = field(default=3)
-    radius: float = field(default=1.0)
-    start_angle: float = field(default=90.0)
+    nr_edges: int
+    radius: float
+    start_angle: float
     angle: float = field(init=False)
     points: list[Point2D] = field(init=False, default_factory=list)
 
@@ -130,100 +130,100 @@ def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
     points = []
 
     if selection == 1:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 4
         ratio = 0.5
         distance = 0
 
     elif selection == 2:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 4
         ratio = 0.5
         distance = 2
 
     elif selection == 3:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 5
         ratio = 0.5
         distance = 0
 
     elif selection == 4:
-        func = is_point_valid_1
+        is_valid_fn = is_point_valid_1
         nr_edges = 7
         ratio = 0.4
         distance = 0
 
     elif selection == 5:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 7
         ratio = 0.4
         distance = 3
 
     elif selection == 6:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 6
         ratio = 0.4
         distance = 3
 
     elif selection == 7:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 6
         ratio = 0.375
         distance = 0
 
     elif selection == 8:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 6
         ratio = 0.5
         distance = 2
 
     elif selection == 9:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 8
         ratio = 0.4
         distance = 0
 
     elif selection == 10:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 1
 
     elif selection == 11:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 2
 
     elif selection == 12:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 3
 
     elif selection == 13:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 4
 
     elif selection == 14:
-        func = is_point_valid
+        is_valid_fn = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 5
 
     else:
-        func = is_point_valid_1
+        is_valid_fn = is_point_valid_1
         nr_edges = 3
         ratio = 0.5
         distance = 0
 
-    polygon = RegularPolygon(nr_edges=nr_edges)
+    polygon = RegularPolygon(nr_edges=nr_edges, radius=1.0, start_angle=90.0)
     kaos = KaosGame(polygon)
 
     for _ in range(max_iterations):
-        points.append(kaos.get_next_point(func, ratio, distance))
+        points.append(kaos.get_next_point(is_valid_fn, ratio, distance))
 
     return points
 
@@ -234,8 +234,8 @@ def points_to_screen_space(
     points: list[Point2D],
 ) -> list[Point2D]:
     "Transform, map, convert the points elements to the screen space."
-    wssp = WorldToScreenSpace(world=world, screen_space=screen_space)
-    return [wssp.mapping(p) for p in points]
+    w2ss = WorldToScreenSpace(world=world, screen_space=screen_space)
+    return [w2ss.mapping(p) for p in points]
 
 
 def backend_bmp(
@@ -247,8 +247,8 @@ def backend_bmp(
     points: list[Point2D],
     point_radius: int,
 ) -> None:
-    image = Image.new("RGB", (width, height), color="white")
     points = points_to_screen_space(world, screen_space, points)
+    image = Image.new("RGB", (width, height), color="white")
     radius2 = point_radius**2
     point_color = (255, 0, 0)
 
