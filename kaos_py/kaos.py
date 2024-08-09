@@ -27,11 +27,11 @@ class Rectangle2D:
 
 @dataclass
 class RegularPolygon:
-    nr_edges: int = field(default=3)
-    radius: float = field(default=1.0)
-    start_angle: float = field(default=90.0)
+    nr_edges: int
+    radius: float
+    start_angle: float
     angle: float = field(init=False)
-    points: list[Point2D] = field(init=False)
+    points: list[Point2D] = field(init=False, default_factory=list)
 
     def __post_init__(self) -> None:
         self.angle = 360.0 / self.nr_edges
@@ -41,10 +41,9 @@ class RegularPolygon:
         if self.nr_edges % 2 == 0:
             self.start_angle += self.angle / 2.0
 
-        self.points = self.init_points()
+        self.init_points()
 
-    def init_points(self) -> list[Point2D]:
-        points = []
+    def init_points(self) -> None:
         deg_rad = math.pi / 180
         current_angle = self.start_angle * deg_rad
         min_y = 2.0
@@ -54,14 +53,12 @@ class RegularPolygon:
                 x=self.radius * math.cos(current_angle),
                 y=self.radius * math.sin(current_angle),
             )
-            points.append(point)
+            self.points.append(point)
 
             if min_y > point.y:
                 min_y = point.y
 
             current_angle += self.angle * deg_rad
-
-        return points
 
 
 @dataclass(init=False)
@@ -82,55 +79,6 @@ class WorldToScreenSpace:
             x=self.A * point.x + self.C,
             y=self.B * point.y + self.D,
         )
-
-
-def points_to_screen_space(
-    world: Rectangle2D,
-    screen_space: Rectangle2D,
-    points: list[Point2D],
-) -> list[Point2D]:
-    "Transform, map, convert the points elements to the screen space."
-    wssp = WorldToScreenSpace(world=world, screen_space=screen_space)
-    return [wssp.mapping(p) for p in points]
-
-
-def draw_point_with_size(
-    image: Image.Image, width: int, height: int, point: Point2D, radius: int
-) -> None:
-    "Draw a `crude` circle around the point."
-    radius2 = radius**2
-    xmin = max(int(point.x - radius), 0)
-    xmax = min(int(point.x + radius), width - 1)
-    ymin = max(int(point.y - radius), 0)
-    ymax = min(int(point.y + radius), height - 1)
-
-    for j in range(ymin, ymax + 1):
-        for i in range(xmin, xmax + 1):
-            dist = int((i - point.x) ** 2 + (j - point.y) ** 2)
-            if dist <= radius2:
-                image.putpixel(xy=(i, j), value=(255, 0, 0))
-
-
-def backend_bmp(
-    file_name: str,
-    width: int,
-    height: int,
-    world: Rectangle2D,
-    screen_space: Rectangle2D,
-    points: list[Point2D],
-    point_radius: int,
-) -> None:
-    image = Image.new("RGB", (width, height), color="white")
-    points = points_to_screen_space(world, screen_space, points)
-
-    if point_radius == 0:
-        for point in points:
-            image.putpixel(xy=(int(point.x), int(point.y)), value=(255, 0, 0))
-    else:
-        for point in points:
-            draw_point_with_size(image, width, height, point, point_radius)
-
-    image.save(file_name)
 
 
 class KaosGame:
@@ -170,11 +118,11 @@ class KaosGame:
         return point
 
 
-def is_valid_point(random_vertex: int, last_vertex: int, dist: int) -> bool:
+def is_point_valid(random_vertex: int, last_vertex: int, dist: int) -> bool:
     return abs(random_vertex - last_vertex) != dist
 
 
-def is_valid_point_1(random_vertex: int, last_vertex: int, dist: int) -> bool:
+def is_point_valid_1(random_vertex: int, last_vertex: int, dist: int) -> bool:
     return True
 
 
@@ -182,102 +130,145 @@ def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
     points = []
 
     if selection == 1:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 4
         ratio = 0.5
         distance = 0
 
     elif selection == 2:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 4
         ratio = 0.5
         distance = 2
 
     elif selection == 3:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 5
         ratio = 0.5
         distance = 0
 
     elif selection == 4:
-        func = is_valid_point_1
+        is_valid_fn = is_point_valid_1
         nr_edges = 7
         ratio = 0.4
         distance = 0
 
     elif selection == 5:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 7
         ratio = 0.4
         distance = 3
 
     elif selection == 6:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 6
         ratio = 0.4
         distance = 3
 
     elif selection == 7:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 6
         ratio = 0.375
         distance = 0
 
     elif selection == 8:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 6
         ratio = 0.5
         distance = 2
 
     elif selection == 9:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 8
         ratio = 0.4
         distance = 0
 
     elif selection == 10:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 1
 
     elif selection == 11:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 2
 
     elif selection == 12:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 3
 
     elif selection == 13:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 4
 
     elif selection == 14:
-        func = is_valid_point
+        is_valid_fn = is_point_valid
         nr_edges = 10
         ratio = 0.375
         distance = 5
 
     else:
-        func = is_valid_point_1
+        is_valid_fn = is_point_valid_1
         nr_edges = 3
         ratio = 0.5
         distance = 0
 
-    polygon = RegularPolygon(nr_edges=nr_edges)
+    polygon = RegularPolygon(nr_edges=nr_edges, radius=1.0, start_angle=90.0)
     kaos = KaosGame(polygon)
 
     for _ in range(max_iterations):
-        points.append(kaos.get_next_point(func, ratio, distance))
+        points.append(kaos.get_next_point(is_valid_fn, ratio, distance))
 
     return points
+
+
+def points_to_screen_space(
+    world: Rectangle2D,
+    screen_space: Rectangle2D,
+    points: list[Point2D],
+) -> list[Point2D]:
+    "Transform, map, convert the points elements to the screen space."
+    w2ss = WorldToScreenSpace(world=world, screen_space=screen_space)
+    return [w2ss.mapping(p) for p in points]
+
+
+def backend_bmp(
+    file_name: str,
+    width: int,
+    height: int,
+    world: Rectangle2D,
+    screen_space: Rectangle2D,
+    points: list[Point2D],
+    point_radius: int,
+) -> None:
+    points = points_to_screen_space(world, screen_space, points)
+    image = Image.new("RGB", (width, height), color="white")
+    radius2 = point_radius**2
+    point_color = (255, 0, 0)
+
+    if point_radius == 0:
+        for point in points:
+            image.putpixel(xy=(int(point.x), int(point.y)), value=point_color)
+    else:
+        for point in points:
+            xmin = max(int(point.x - point_radius), 0)
+            xmax = min(int(point.x + point_radius), width - 1)
+            ymin = max(int(point.y - point_radius), 0)
+            ymax = min(int(point.y + point_radius), height - 1)
+
+            for j in range(ymin, ymax + 1):
+                for i in range(xmin, xmax + 1):
+                    dist = int((i - point.x) ** 2 + (j - point.y) ** 2)
+                    if dist <= radius2:
+                        image.putpixel(xy=(i, j), value=point_color)
+
+    image.save(file_name)
 
 
 def main() -> None:
