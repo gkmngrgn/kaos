@@ -31,7 +31,7 @@ class RegularPolygon:
     radius: float = field(default=1.0)
     start_angle: float = field(default=90.0)
     angle: float = field(init=False)
-    points: list[Point2D] = field(init=False)
+    points: list[Point2D] = field(init=False, default_factory=list)
 
     def __post_init__(self) -> None:
         self.angle = 360.0 / self.nr_edges
