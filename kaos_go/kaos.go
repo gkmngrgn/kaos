@@ -73,6 +73,24 @@ func (rp *RegularPolygon) initPoints() {
 	}
 }
 
+type WorldToScreenSpace struct {
+	A, B, C, D float64
+}
+
+func NewWorldToScreenSpace(world, screenSpace Rectangle2D) *WorldToScreenSpace {
+	a := (screenSpace.Right - screenSpace.Left) / (world.Right - world.Left)
+	b := (screenSpace.Top - screenSpace.Bottom) / (world.Top - world.Bottom)
+	c := screenSpace.Left - a*world.Left
+	d := screenSpace.Bottom - b*world.Bottom
+	return &WorldToScreenSpace{A: a, B: b, C: c, D: d}
+}
+
+func (w2ss *WorldToScreenSpace) Mapping(point Point2D) Point2D {
+	x := w2ss.A*point.X + w2ss.C
+	y := w2ss.B*point.Y + w2ss.D
+	return Point2D{X: x, Y: y}
+}
+
 type KaosGame struct {
 	Polygon               RegularPolygon
 	LastPoint             Point2D
@@ -119,24 +137,6 @@ func (kg *KaosGame) GetNextPoint(
 	}
 
 	return kg.LastPoint
-}
-
-type WorldToScreenSpace struct {
-	A, B, C, D float64
-}
-
-func NewWorldToScreenSpace(world, screenSpace Rectangle2D) *WorldToScreenSpace {
-	a := (screenSpace.Right - screenSpace.Left) / (world.Right - world.Left)
-	b := (screenSpace.Top - screenSpace.Bottom) / (world.Top - world.Bottom)
-	c := screenSpace.Left - a*world.Left
-	d := screenSpace.Bottom - c*world.Bottom
-	return &WorldToScreenSpace{A: a, B: b, C: c, D: d}
-}
-
-func (w2ss *WorldToScreenSpace) Mapping(point Point2D) Point2D {
-	x := w2ss.A*point.X + w2ss.C
-	y := w2ss.B*point.Y + w2ss.D
-	return Point2D{X: x, Y: y}
 }
 
 func isPointValid(randomVertex, lastVertex, dist int) bool {
