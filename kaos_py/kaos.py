@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
-import math
 import random
 import sys
-from typing import Callable, Final
+from typing import Callable, Final, Annotated, TypeAlias
 
+import numpy as np
+import numpy.typing as npt
 from PIL import Image
 
 
@@ -11,18 +12,16 @@ WIDTH: Final = 800
 HEIGHT: Final = 800
 
 
-@dataclass
-class Point2D:
-    x: float
-    y: float
+point2d_dtype = np.dtype([("x", np.float64), ("y", np.float64)])
+Point2D: TypeAlias = Annotated[np.float64, (2,)]
 
 
 @dataclass
 class Rectangle2D:
-    left: float
-    bottom: float
-    right: float
-    top: float
+    left: np.float64
+    bottom: np.float64
+    right: np.float64
+    top: np.float64
 
 
 @dataclass
@@ -31,7 +30,9 @@ class RegularPolygon:
     radius: float
     start_angle: float
     angle: float = field(init=False)
-    points: list[Point2D] = field(init=False, default_factory=list)
+    points: npt.NDArray[Point2D] = field(
+        init=False, default_factory=lambda: np.zeros((0, 2), dtype=point2d_dtype)
+    )
 
     def __post_init__(self) -> None:
         self.angle = 360.0 / self.nr_edges
@@ -44,19 +45,21 @@ class RegularPolygon:
         self.init_points()
 
     def init_points(self) -> None:
-        deg_rad = math.pi / 180
+        deg_rad = np.pi / 180
         current_angle = self.start_angle * deg_rad
         min_y = 2.0
 
-        for _ in range(self.nr_edges):
-            point = Point2D(
-                x=self.radius * math.cos(current_angle),
-                y=self.radius * math.sin(current_angle),
+        for point_index in range(self.nr_edges):
+            self.points[point_index] = np.array(
+                [
+                    self.radius * np.cos(current_angle),
+                    self.radius * np.sin(current_angle),
+                ],
+                dtype=point2d_dtype,
             )
-            self.points.append(point)
 
-            if min_y > point.y:
-                min_y = point.y
+            if min_y > self.points[point_index].y:
+                min_y = self.points[point_index].y
 
             current_angle += self.angle * deg_rad
 
@@ -75,9 +78,12 @@ class WorldToScreenSpace:
         self.D = screen_space.bottom - self.B * world.bottom
 
     def mapping(self, point: Point2D) -> Point2D:
-        return Point2D(
-            x=self.A * point.x + self.C,
-            y=self.B * point.y + self.D,
+        return np.array(
+            [
+                self.A * point.x + self.C,
+                self.B * point.y + self.D,
+            ],
+            dtype=point2d_dtype,
         )
 
 
@@ -92,7 +98,7 @@ class KaosGame:
 
     def get_next_point(
         self,
-        func: Callable[[int, int, int], bool],
+        is_valid_fn: Callable[[int, int, int], bool],
         ratio: float,
         dist: int,
     ) -> Point2D:
@@ -101,8 +107,7 @@ class KaosGame:
 
         while running is True:
             random_vertex = random.randint(0, len(self.polygon.points) - 1)
-
-            if func(random_vertex, self.last_vertex, dist) is True:
+            if is_valid_fn(random_vertex, self.last_vertex, dist) is True:
                 random_point = self.polygon.points[random_vertex]
                 point = Point2D(
                     x=((self.last_point.x + random_point.x) * ratio),
@@ -126,9 +131,7 @@ def is_point_valid_1(random_vertex: int, last_vertex: int, dist: int) -> bool:
     return True
 
 
-def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
-    points = []
-
+def generate_points(max_iterations: int, selection: int = 0) -> npt.NDArray[Point2D]:
     if selection == 1:
         is_valid_fn = is_point_valid
         nr_edges = 4
@@ -221,9 +224,10 @@ def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
 
     polygon = RegularPolygon(nr_edges=nr_edges, radius=1.0, start_angle=90.0)
     kaos = KaosGame(polygon)
+    points = np.empty((max_iterations, 2), dtype=point2d_dtype)
 
-    for _ in range(max_iterations):
-        points.append(kaos.get_next_point(is_valid_fn, ratio, distance))
+    for point_index in range(max_iterations):
+        points[point_index] = kaos.get_next_point(is_valid_fn, ratio, distance)
 
     return points
 
@@ -231,11 +235,12 @@ def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
 def points_to_screen_space(
     world: Rectangle2D,
     screen_space: Rectangle2D,
-    points: list[Point2D],
-) -> list[Point2D]:
+    points: npt.NDArray[Point2D],
+) -> None:
     "Transform, map, convert the points elements to the screen space."
     w2ss = WorldToScreenSpace(world=world, screen_space=screen_space)
-    return [w2ss.mapping(p) for p in points]
+    for index, point in enumerate(points):
+        points[index] = w2ss.mapping(point)
 
 
 def backend_bmp(
@@ -244,10 +249,10 @@ def backend_bmp(
     height: int,
     world: Rectangle2D,
     screen_space: Rectangle2D,
-    points: list[Point2D],
+    points: npt.NDArray[Point2D],
     point_radius: int,
 ) -> None:
-    points = points_to_screen_space(world, screen_space, points)
+    points_to_screen_space(world, screen_space, points)
     image = Image.new("RGB", (width, height), color="white")
     radius2 = point_radius**2
     point_color = (255, 0, 0)
@@ -272,6 +277,9 @@ def backend_bmp(
 
 
 def main() -> None:
+    # profiler = cProfile.Profile()
+    # profiler.enable()
+
     world = Rectangle2D(-1.08, -1.08, 1.08, 1.08)
 
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
@@ -285,3 +293,8 @@ def main() -> None:
     file_name = f"kaos_{selection}.bmp"
     backend_bmp(file_name, WIDTH, HEIGHT, world, screen_space, points, 0)
     print(f"Saved to: {file_name}")
+
+    # profiler.disable()
+    # stats = pstats.Stats(profiler)
+    # stats.sort_stats(pstats.SortKey.TIME)
+    # stats.print_stats()
