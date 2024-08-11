@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 import math
 import random
 import sys
-from typing import Callable, Final
+from typing import Callable, Final, Generator
 
 from PIL import Image
 
@@ -31,7 +31,7 @@ class RegularPolygon:
     radius: float
     start_angle: float
     angle: float = field(init=False)
-    points: list[Point2D] = field(init=False, default_factory=list)
+    points: Generator[Point2D, None, None] = field(init=False)
 
     def __post_init__(self) -> None:
         self.angle = 360.0 / self.nr_edges
@@ -41,9 +41,9 @@ class RegularPolygon:
         if self.nr_edges % 2 == 0:
             self.start_angle += self.angle / 2.0
 
-        self.init_points()
+        self.points = self.init_points()
 
-    def init_points(self) -> None:
+    def init_points(self) -> Generator[Point2D, None, None]:
         deg_rad = math.pi / 180
         current_angle = self.start_angle * deg_rad
         min_y = 2.0
@@ -53,12 +53,13 @@ class RegularPolygon:
                 x=self.radius * math.cos(current_angle),
                 y=self.radius * math.sin(current_angle),
             )
-            self.points.append(point)
 
             if min_y > point.y:
                 min_y = point.y
 
             current_angle += self.angle * deg_rad
+
+            yield point
 
 
 @dataclass(init=False)
@@ -86,8 +87,8 @@ class KaosGame:
     ignore_first_iterations = 10
 
     def __init__(self, polygon: RegularPolygon) -> None:
-        self.polygon = polygon
-        self.last_point = polygon.points[0]
+        self.polygon_points = list(polygon.points)
+        self.last_point = self.polygon_points[0]
         self.last_vertex = 0
 
     def get_next_point(
@@ -100,10 +101,10 @@ class KaosGame:
         remove_iter = 0
 
         while running is True:
-            random_vertex = random.randint(0, len(self.polygon.points) - 1)
+            random_vertex = random.randint(0, len(self.polygon_points) - 1)
 
             if func(random_vertex, self.last_vertex, dist) is True:
-                random_point = self.polygon.points[random_vertex]
+                random_point = self.polygon_points[random_vertex]
                 point = Point2D(
                     x=((self.last_point.x + random_point.x) * ratio),
                     y=((self.last_point.y + random_point.y) * ratio),
@@ -126,9 +127,9 @@ def is_point_valid_1(random_vertex: int, last_vertex: int, dist: int) -> bool:
     return True
 
 
-def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
-    points = []
-
+def generate_points(
+    max_iterations: int, selection: int = 0
+) -> Generator[Point2D, None, None]:
     if selection == 1:
         is_valid_fn = is_point_valid
         nr_edges = 4
@@ -223,19 +224,7 @@ def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
     kaos = KaosGame(polygon)
 
     for _ in range(max_iterations):
-        points.append(kaos.get_next_point(is_valid_fn, ratio, distance))
-
-    return points
-
-
-def points_to_screen_space(
-    world: Rectangle2D,
-    screen_space: Rectangle2D,
-    points: list[Point2D],
-) -> list[Point2D]:
-    "Transform, map, convert the points elements to the screen space."
-    w2ss = WorldToScreenSpace(world=world, screen_space=screen_space)
-    return [w2ss.mapping(p) for p in points]
+        yield kaos.get_next_point(is_valid_fn, ratio, distance)
 
 
 def backend_bmp(
@@ -244,19 +233,18 @@ def backend_bmp(
     height: int,
     world: Rectangle2D,
     screen_space: Rectangle2D,
-    points: list[Point2D],
+    points: Generator[Point2D, None, None],
     point_radius: int,
 ) -> None:
-    points = points_to_screen_space(world, screen_space, points)
+    w2ss = WorldToScreenSpace(world=world, screen_space=screen_space)
     image = Image.new("RGB", (width, height), color="white")
     radius2 = point_radius**2
     point_color = (255, 0, 0)
 
-    if point_radius == 0:
-        for point in points:
+    for point in (w2ss.mapping(p) for p in points):
+        if point_radius == 0:
             image.putpixel(xy=(int(point.x), int(point.y)), value=point_color)
-    else:
-        for point in points:
+        else:
             xmin = max(int(point.x - point_radius), 0)
             xmax = min(int(point.x + point_radius), width - 1)
             ymin = max(int(point.y - point_radius), 0)
