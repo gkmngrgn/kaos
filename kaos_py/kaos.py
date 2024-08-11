@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 import math
 import random
 import sys
-from typing import Callable, Final
+from typing import Callable, Final, Generator
 
 from PIL import Image
 
@@ -126,9 +126,9 @@ def is_point_valid_1(random_vertex: int, last_vertex: int, dist: int) -> bool:
     return True
 
 
-def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
-    points = []
-
+def generate_points(
+    max_iterations: int, selection: int = 0
+) -> Generator[Point2D, None, None]:
     if selection == 1:
         is_valid_fn = is_point_valid
         nr_edges = 4
@@ -223,19 +223,18 @@ def generate_points(max_iterations: int, selection: int = 0) -> list[Point2D]:
     kaos = KaosGame(polygon)
 
     for _ in range(max_iterations):
-        points.append(kaos.get_next_point(is_valid_fn, ratio, distance))
-
-    return points
+        yield kaos.get_next_point(is_valid_fn, ratio, distance)
 
 
 def points_to_screen_space(
     world: Rectangle2D,
     screen_space: Rectangle2D,
-    points: list[Point2D],
-) -> list[Point2D]:
+    points: Generator[Point2D, None, None],
+) -> Generator[Point2D, None, None]:
     "Transform, map, convert the points elements to the screen space."
     w2ss = WorldToScreenSpace(world=world, screen_space=screen_space)
-    return [w2ss.mapping(p) for p in points]
+    for p in points:
+        yield w2ss.mapping(p)
 
 
 def backend_bmp(
@@ -244,7 +243,7 @@ def backend_bmp(
     height: int,
     world: Rectangle2D,
     screen_space: Rectangle2D,
-    points: list[Point2D],
+    points: Generator[Point2D, None, None],
     point_radius: int,
 ) -> None:
     points = points_to_screen_space(world, screen_space, points)
