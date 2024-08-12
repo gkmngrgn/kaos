@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
 import math
-import random
 import sys
 from typing import Callable, Final, Generator
 
 from PIL import Image
+import fastrand
+import numpy as np
 
 
 WIDTH: Final = 800
@@ -75,11 +76,8 @@ class WorldToScreenSpace:
         self.C = screen_space.left - self.A * world.left
         self.D = screen_space.bottom - self.B * world.bottom
 
-    def mapping(self, point: Point2D) -> Point2D:
-        return Point2D(
-            x=self.A * point.x + self.C,
-            y=self.B * point.y + self.D,
-        )
+    def mapping(self, point: Point2D) -> tuple[int, int]:
+        return (int(self.A * point.x + self.C), int(self.B * point.y + self.D))
 
 
 class KaosGame:
@@ -87,7 +85,7 @@ class KaosGame:
     ignore_first_iterations = 10
 
     def __init__(self, polygon: RegularPolygon) -> None:
-        self.polygon_points = list(polygon.points)
+        self.polygon_points = np.array([(p.x, p.y) for p in polygon.points])
         self.last_point = self.polygon_points[0]
         self.last_vertex = 0
 
@@ -99,16 +97,14 @@ class KaosGame:
     ) -> Point2D:
         running = True
         remove_iter = 0
+        max_vertex = len(self.polygon_points) - 1
 
         while running is True:
-            random_vertex = random.randint(0, len(self.polygon_points) - 1)
+            random_vertex = fastrand.pcg32randint(0, max_vertex)
 
             if func(random_vertex, self.last_vertex, dist) is True:
                 random_point = self.polygon_points[random_vertex]
-                point = Point2D(
-                    x=((self.last_point.x + random_point.x) * ratio),
-                    y=((self.last_point.y + random_point.y) * ratio),
-                )
+                point = (self.last_point + random_point) * ratio
                 self.last_vertex = random_vertex
                 self.last_point = point
                 remove_iter += 1
@@ -116,7 +112,7 @@ class KaosGame:
                 if remove_iter >= self.ignore_first_iterations:
                     running = False
 
-        return point
+        return Point2D(x=point[0], y=point[1])
 
 
 def is_point_valid(random_vertex: int, last_vertex: int, dist: int) -> bool:
@@ -237,25 +233,26 @@ def backend_bmp(
     point_radius: int,
 ) -> None:
     w2ss = WorldToScreenSpace(world=world, screen_space=screen_space)
-    image = Image.new("RGB", (width, height), color="white")
     radius2 = point_radius**2
+    pixel_data = np.full((height, width, 3), 255, dtype=np.uint8)
     point_color = (255, 0, 0)
 
-    for point in (w2ss.mapping(p) for p in points):
+    for point_x, point_y in (w2ss.mapping(p) for p in points):
         if point_radius == 0:
-            image.putpixel(xy=(int(point.x), int(point.y)), value=point_color)
+            pixel_data[point_y, point_x] = point_color
         else:
-            xmin = max(int(point.x - point_radius), 0)
-            xmax = min(int(point.x + point_radius), width - 1)
-            ymin = max(int(point.y - point_radius), 0)
-            ymax = min(int(point.y + point_radius), height - 1)
+            xmin = max(point_x - point_radius, 0)
+            xmax = min(point_x + point_radius, width - 1)
+            ymin = max(point_y - point_radius, 0)
+            ymax = min(point_y + point_radius, height - 1)
 
             for j in range(ymin, ymax + 1):
                 for i in range(xmin, xmax + 1):
-                    dist = int((i - point.x) ** 2 + (j - point.y) ** 2)
+                    dist = (i - point_x) ** 2 + (j - point_y) ** 2
                     if dist <= radius2:
-                        image.putpixel(xy=(i, j), value=point_color)
+                        pixel_data[j, i] = point_color
 
+    image = Image.fromarray(pixel_data, "RGB")
     image.save(file_name)
 
 
